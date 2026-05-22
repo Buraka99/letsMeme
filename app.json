@@ -23,6 +23,11 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "plugins": ["expo-router"]
   }
 }
