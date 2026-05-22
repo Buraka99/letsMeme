@@ -1,67 +1,76 @@
 import { useEffect } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, FlatList } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native'
 import { router } from 'expo-router'
-import { useGameStore } from '../src/store/gameStore'
+import { useAuthStore } from '../src/store/authStore'
+import { useRoomStore } from '../src/store/roomStore'
 
 export default function EndScreen() {
-  const room = useGameStore(s => s.room)
-  const reset = useGameStore(s => s.reset)
+  const { profile, incrementStat } = useAuthStore()
+  const { room, setRoom } = useRoomStore()
 
   useEffect(() => {
-    if (!room) router.replace('/')
-  }, [room])
+    if (!room || !profile) return
+    incrementStat('gamesPlayed')
+    const winner = [...room.players].sort((a, b) => b.score - a.score)[0]
+    if (winner?.profileId === profile.id) incrementStat('wins')
+  }, [])
 
-  if (!room) return null
+  if (!room || !profile) return null
 
   const sorted = [...room.players].sort((a, b) => b.score - a.score)
-  const winner = sorted[0]
 
-  function handlePlayAgain() {
-    reset()
-    router.replace('/')
+  const handlePlayAgain = () => {
+    setRoom({ ...room, state: 'lobby', currentRound: null })
+    router.replace('/lobby')
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.inner}>
-        <Text style={styles.trophy}>🏆</Text>
-        <Text style={styles.winnerLabel}>WINNER</Text>
-        <Text style={styles.winnerName}>{winner.name}</Text>
-        <Text style={styles.winnerScore}>{winner.score} points</Text>
-
-        <FlatList
-          data={sorted}
-          keyExtractor={p => p.id}
-          renderItem={({ item, index }) => (
-            <View style={styles.row}>
-              <Text style={styles.rank}>#{index + 1}</Text>
-              <Text style={styles.rowName}>{item.name}</Text>
-              <Text style={styles.rowScore}>{item.score}</Text>
-            </View>
-          )}
-          style={styles.list}
-        />
-
-        <TouchableOpacity onPress={handlePlayAgain} style={styles.btn}>
-          <Text style={styles.btnTxt}>Play Again</Text>
-        </TouchableOpacity>
+    <View style={styles.container}>
+      <Text style={styles.title}>Game Over!</Text>
+      <View style={[styles.winnerBadge, { backgroundColor: sorted[0]?.avatarColor ?? '#6366f1' }]}>
+        <Text style={styles.winnerText}>🏆 {sorted[0]?.displayName}</Text>
       </View>
-    </SafeAreaView>
+
+      <Text style={styles.scoresTitle}>Final Scores</Text>
+      <FlatList
+        data={sorted}
+        keyExtractor={p => p.profileId}
+        renderItem={({ item, index }) => (
+          <View style={styles.scoreRow}>
+            <Text style={styles.rank}>#{index + 1}</Text>
+            <View style={[styles.dot, { backgroundColor: item.avatarColor }]} />
+            <Text style={styles.playerName}>{item.displayName}</Text>
+            <Text style={styles.score}>{item.score} pts</Text>
+          </View>
+        )}
+        style={styles.list}
+      />
+
+      <TouchableOpacity style={styles.playAgainButton} onPress={handlePlayAgain}>
+        <Text style={styles.playAgainText}>Play Again</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.dashboardButton} onPress={() => router.replace('/dashboard')}>
+        <Text style={styles.dashboardText}>Back to Dashboard</Text>
+      </TouchableOpacity>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a1a' },
-  inner: { flex: 1, padding: 24, alignItems: 'center' },
-  trophy: { fontSize: 80, marginTop: 24, marginBottom: 8 },
-  winnerLabel: { color: '#6c63ff', fontSize: 12, fontWeight: '800', letterSpacing: 4 },
-  winnerName: { color: '#fff', fontSize: 40, fontWeight: '900', marginTop: 4 },
-  winnerScore: { color: '#888', fontSize: 18, marginBottom: 32 },
-  list: { width: '100%', flex: 1 },
-  row: { flexDirection: 'row', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1a1a2e' },
-  rank: { color: '#555', fontSize: 16, width: 36 },
-  rowName: { flex: 1, color: '#fff', fontSize: 16 },
-  rowScore: { color: '#6c63ff', fontSize: 16, fontWeight: '700' },
-  btn: { backgroundColor: '#6c63ff', padding: 18, borderRadius: 16, alignItems: 'center', width: '100%', marginTop: 16 },
-  btnTxt: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  container: { flex: 1, backgroundColor: '#0f1117', padding: 24, paddingTop: 60 },
+  title: { fontSize: 36, fontWeight: '900', color: '#ffffff', textAlign: 'center', marginBottom: 24 },
+  winnerBadge: { borderRadius: 16, padding: 16, alignItems: 'center', marginBottom: 32 },
+  winnerText: { color: '#ffffff', fontSize: 22, fontWeight: '800' },
+  scoresTitle: { color: '#8b8fa8', fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  list: { flex: 1 },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1d2e', borderRadius: 12, padding: 14, marginBottom: 8 },
+  rank: { color: '#8b8fa8', fontWeight: '700', width: 28, fontSize: 14 },
+  dot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
+  playerName: { flex: 1, color: '#ffffff', fontSize: 15 },
+  score: { color: '#6366f1', fontWeight: '800', fontSize: 15 },
+  playAgainButton: { backgroundColor: '#6366f1', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 24 },
+  playAgainText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  dashboardButton: { alignItems: 'center', marginTop: 12 },
+  dashboardText: { color: '#8b8fa8', fontSize: 15 },
 })
