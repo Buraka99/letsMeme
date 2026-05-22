@@ -29,20 +29,16 @@ export default function GameScreen() {
     const submittedIds = round.submissions.map(s => s.playerId)
     const nextPlayer = nonJudges.find(p => !submittedIds.includes(p.id))
 
-    if (submittedIds.length === 0) {
-      return <JudgeWaitScreen room={room} />
+    if (nextPlayer) {
+      return (
+        <PlayerHandScreen
+          room={room}
+          currentPlayerId={nextPlayer.id}
+        />
+      )
     }
 
-    if (!nextPlayer) {
-      return <JudgeWaitScreen room={room} />
-    }
-
-    return (
-      <PlayerHandScreen
-        room={room}
-        currentPlayerId={nextPlayer.id}
-      />
-    )
+    return <JudgeWaitScreen room={room} />
   }
 
   if (round.phase === 'revealing') {
