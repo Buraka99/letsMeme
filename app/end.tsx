@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, FlatList } from 'react-native'
 import { router } from 'expo-router'
 import { useGameStore } from '../src/store/gameStore'
@@ -6,10 +7,11 @@ export default function EndScreen() {
   const room = useGameStore(s => s.room)
   const reset = useGameStore(s => s.reset)
 
-  if (!room) {
-    router.replace('/')
-    return null
-  }
+  useEffect(() => {
+    if (!room) router.replace('/')
+  }, [room])
+
+  if (!room) return null
 
   const sorted = [...room.players].sort((a, b) => b.score - a.score)
   const winner = sorted[0]

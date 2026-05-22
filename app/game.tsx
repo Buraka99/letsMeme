@@ -29,9 +29,11 @@ export default function GameScreen() {
     const submittedIds = round.submissions.map(s => s.playerId)
     const nextPlayer = nonJudges.find(p => !submittedIds.includes(p.id))
 
-    if (!nextPlayer) return null
-
     if (submittedIds.length === 0) {
+      return <JudgeWaitScreen room={room} />
+    }
+
+    if (!nextPlayer) {
       return <JudgeWaitScreen room={room} />
     }
 
