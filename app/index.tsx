@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
@@ -10,6 +10,7 @@ WebBrowser.maybeCompleteAuthSession()
 
 export default function AuthScreen() {
   const { profile, loading, signInAsGuest } = useAuthStore()
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!loading && profile) {
@@ -18,26 +19,40 @@ export default function AuthScreen() {
   }, [profile, loading])
 
   const handleAppleSignIn = async () => {
-    const redirectUri = makeRedirectUri({ scheme: 'letsmeme' })
-    const { data } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: { redirectTo: redirectUri },
-    })
-    if (data?.url) await WebBrowser.openAuthSessionAsync(data.url, redirectUri)
+    setError('')
+    try {
+      const redirectUri = makeRedirectUri({ scheme: 'letsmeme' })
+      const { data } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: { redirectTo: redirectUri },
+      })
+      if (data?.url) await WebBrowser.openAuthSessionAsync(data.url, redirectUri)
+    } catch {
+      setError('Apple sign-in failed. Please try again.')
+    }
   }
 
   const handleGoogleSignIn = async () => {
-    const redirectUri = makeRedirectUri({ scheme: 'letsmeme' })
-    const { data } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: redirectUri },
-    })
-    if (data?.url) await WebBrowser.openAuthSessionAsync(data.url, redirectUri)
+    setError('')
+    try {
+      const redirectUri = makeRedirectUri({ scheme: 'letsmeme' })
+      const { data } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: redirectUri },
+      })
+      if (data?.url) await WebBrowser.openAuthSessionAsync(data.url, redirectUri)
+    } catch {
+      setError('Google sign-in failed. Please try again.')
+    }
   }
 
   const handleGuest = async () => {
-    await signInAsGuest()
-    router.replace('/dashboard')
+    try {
+      await signInAsGuest()
+      router.replace('/dashboard')
+    } catch {
+      setError('Could not sign in as guest. Please try again.')
+    }
   }
 
   if (loading) {
@@ -52,6 +67,8 @@ export default function AuthScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Let's Meme</Text>
       <Text style={styles.subtitle}>The meme card party game</Text>
+
+      {!!error && <Text style={styles.errorText}>{error}</Text>}
 
       <TouchableOpacity style={[styles.button, styles.appleButton]} onPress={handleAppleSignIn}>
         <Text style={styles.buttonText}>Sign in with Apple</Text>
@@ -72,6 +89,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f1117', alignItems: 'center', justifyContent: 'center', padding: 24 },
   title: { fontSize: 42, fontWeight: '900', color: '#ffffff', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#8b8fa8', marginBottom: 48 },
+  errorText: { color: '#ef4444', fontSize: 14, marginBottom: 12, textAlign: 'center' },
   button: { width: '100%', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
   appleButton: { backgroundColor: '#ffffff' },
   googleButton: { backgroundColor: '#4285f4' },
