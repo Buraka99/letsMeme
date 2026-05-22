@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, FlatList } from 'react-native'
 import { router } from 'expo-router'
 import { useGameStore } from '../src/store/gameStore'
@@ -6,10 +7,11 @@ export default function LobbyScreen() {
   const room = useGameStore(s => s.room)
   const startGame = useGameStore(s => s.startGame)
 
-  if (!room) {
-    router.replace('/')
-    return null
-  }
+  useEffect(() => {
+    if (!room) router.replace('/')
+  }, [room])
+
+  if (!room) return null
 
   function handleStart() {
     startGame()

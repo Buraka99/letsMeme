@@ -24,8 +24,10 @@ export function CardHand({ cards, selectedId, onSelect, disabled = false }: Prop
               key={card.id}
               style={[
                 styles.cardWrapper,
-                { transform: [{ rotate: `${angle}deg` }, { translateY: Math.abs(angle) * 1.5 }] },
-                selectedId === card.id && styles.cardWrapperSelected,
+                { transform: [
+                  { rotate: `${angle}deg` },
+                  { translateY: selectedId === card.id ? -12 : Math.abs(angle) * 1.5 },
+                ]},
               ]}
             >
               <CaptionCard
@@ -47,5 +49,4 @@ const styles = StyleSheet.create({
   container: { paddingVertical: 16 },
   scroll: { paddingHorizontal: 24, alignItems: 'flex-end', paddingBottom: 8 },
   cardWrapper: { marginHorizontal: -6 },
-  cardWrapperSelected: { transform: [{ translateY: -12 }] },
 })

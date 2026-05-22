@@ -48,7 +48,7 @@ export default function HomeScreen() {
           <Text style={styles.subtitle}>Add players to get started</Text>
 
           {names.map((name, i) => (
-            <View key={i} style={styles.row}>
+            <View key={`player-slot-${i}-${names.length}`} style={styles.row}>
               <TextInput
                 style={styles.input}
                 placeholder={`Player ${i + 1}`}
