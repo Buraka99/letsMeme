@@ -16,12 +16,16 @@ export type Deck = {
   familySafe: boolean
 }
 
-export type Player = {
+export type Profile = {
   id: string
-  name: string
-  score: number
-  hand: Card[]
-  isJudge: boolean
+  displayName: string
+  avatarColor: string
+  stats: {
+    gamesPlayed: number
+    wins: number
+    roundsWon: number
+    favoriteDeckId: string | null
+  }
 }
 
 export type RoomState = 'lobby' | 'playing' | 'ended'
@@ -29,9 +33,21 @@ export type RoomState = 'lobby' | 'playing' | 'ended'
 export type RoomConfig = {
   targetScore: number
   familyMode: boolean
-  rapidFireSeconds: number | null
-  judgeExplainsWhy: boolean
   selectedDeckIds: string[]
+  chaoticFunMode: boolean
+  hostRevealsCaptions: boolean
+  allReadyAdvance: boolean
+  rapidFireSeconds: number | null
+}
+
+export type RoomPlayer = {
+  profileId: string
+  displayName: string
+  avatarColor: string
+  score: number
+  hand: Card[]
+  isReady: boolean
+  isOnline: boolean
 }
 
 export type Submission = {
@@ -41,14 +57,19 @@ export type Submission = {
   revealed: boolean
 }
 
-export type RoundPhase = 'submitting' | 'revealing' | 'explaining' | 'complete'
+export type Vote = {
+  voterId: string
+  submissionId: string
+}
+
+export type RoundPhase = 'submitting' | 'revealing' | 'voting' | 'results'
 
 export type Round = {
   id: string
   photoCard: Card
   submissions: Submission[]
-  winnerId: string | null
-  judgeExplanation: string | null
+  votes: Vote[]
+  winnerIds: string[]
   phase: RoundPhase
   revealIndex: number
   timerExpiresAt: number | null
@@ -56,11 +77,12 @@ export type Round = {
 
 export type Room = {
   id: string
-  players: Player[]
+  code: string
+  hostId: string
+  players: RoomPlayer[]
   config: RoomConfig
   state: RoomState
   currentRound: Round | null
-  judgeIndex: number
   deck: {
     captions: Card[]
     photos: Card[]
