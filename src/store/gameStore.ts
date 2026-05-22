@@ -192,7 +192,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     const withFilledHands = refillHands(withNewJudge)
     const withNewRound = startRound(withFilledHands)
-    set({ room: withNewRound })
+    setTimeout(() => {
+      set({ room: withNewRound })
+    }, 2000)
   },
 
   reset() {

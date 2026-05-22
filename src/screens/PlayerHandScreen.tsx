@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { PhotoCard } from '../components/PhotoCard'
 import { CardHand } from '../components/CardHand'
 import { useGameStore } from '../store/gameStore'
@@ -36,7 +37,10 @@ export function PlayerHandScreen({ room, currentPlayerId }: Props) {
         <CardHand
           cards={player.hand}
           selectedId={selectedId}
-          onSelect={setSelectedId}
+          onSelect={(id) => {
+            Haptics.selectionAsync()
+            setSelectedId(id)
+          }}
         />
 
         <TouchableOpacity

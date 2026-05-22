@@ -124,6 +124,7 @@ describe('revealNext', () => {
 
 describe('pickWinner', () => {
   it('awards a point, advances judge, refills hands, starts new round', () => {
+    jest.useFakeTimers()
     act(() => {
       useGameStore.getState().createRoom(
         ['Alice', 'Bob', 'Carol'],
@@ -138,7 +139,9 @@ describe('pickWinner', () => {
       nonJudges.forEach(p => useGameStore.getState().submitCard(p.id, p.hand[0].id))
       nonJudges.forEach(() => useGameStore.getState().revealNext())
       useGameStore.getState().pickWinner(winnerId)
+      jest.runAllTimers()
     })
+    jest.useRealTimers()
     const updated = useGameStore.getState().room!
     const winner = updated.players.find(p => p.id === winnerId)!
     expect(winner.score).toBe(1)
@@ -170,6 +173,7 @@ describe('pickWinner', () => {
   })
 
   it('does not clear incoming judge hand after round', () => {
+    jest.useFakeTimers()
     act(() => {
       useGameStore.getState().createRoom(
         ['Alice', 'Bob', 'Carol'],
@@ -183,7 +187,9 @@ describe('pickWinner', () => {
       nonJudges.forEach(p => useGameStore.getState().submitCard(p.id, p.hand[0].id))
       nonJudges.forEach(() => useGameStore.getState().revealNext())
       useGameStore.getState().pickWinner(nonJudges[0].id)
+      jest.runAllTimers()
     })
+    jest.useRealTimers()
     const updated = useGameStore.getState().room!
     // The new judge (index 1 after rotation from 0) should still have cards
     const newJudge = updated.players.find(p => p.isJudge)!
@@ -191,6 +197,7 @@ describe('pickWinner', () => {
   })
 
   it('recycles photo cards when deck is exhausted', () => {
+    jest.useFakeTimers()
     act(() => {
       useGameStore.getState().createRoom(
         ['Alice', 'Bob'],
@@ -207,8 +214,10 @@ describe('pickWinner', () => {
         useGameStore.getState().submitCard(nonJudge.id, nonJudge.hand[0].id)
         useGameStore.getState().revealNext()
         useGameStore.getState().pickWinner(nonJudge.id)
+        jest.runAllTimers()
       })
     }
+    jest.useRealTimers()
     // Should not have crashed — room still has a valid photo card
     const room = useGameStore.getState().room!
     if (room.state === 'playing') {

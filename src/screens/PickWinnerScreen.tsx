@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, FlatList } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { useGameStore } from '../store/gameStore'
 import type { Room } from '../types/game'
 
@@ -12,6 +13,7 @@ export function PickWinnerScreen({ room }: Props) {
 
   function handlePick() {
     if (!selectedSubmissionId) return
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
     const sub = round.submissions.find(s => s.id === selectedSubmissionId)!
     pickWinner(sub.playerId)
   }
