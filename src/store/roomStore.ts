@@ -156,13 +156,14 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
       p.profileId === playerId ? { ...p, hand: p.hand.filter(c => c.id !== card.id) } : p
     )
     const updated: Room = { ...room, players: updatedPlayers, currentRound: updatedRound }
-    persistRoom(updated)
+    persistRoom(updated).catch(err => set({ error: String(err) }))
     set({ room: updated })
   },
 
   revealNext: () => {
     const { room } = get()
     if (!room?.currentRound) return
+    if (room.currentRound.phase !== 'revealing') return
     const { revealIndex, submissions } = room.currentRound
     const nextIndex = revealIndex + 1
     const updatedSubmissions = submissions.map((s, i) =>
@@ -176,13 +177,14 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
       phase: allRevealed ? 'voting' as const : 'revealing' as const,
     }
     const updated: Room = { ...room, currentRound: updatedRound }
-    persistRoom(updated)
+    persistRoom(updated).catch(err => set({ error: String(err) }))
     set({ room: updated })
   },
 
   castVote: (voterId, submissionId) => {
     const { room } = get()
     if (!room?.currentRound) return
+    if (room.currentRound.phase !== 'voting') return
     const submission = room.currentRound.submissions.find(s => s.id === submissionId)
     if (!submission || submission.playerId === voterId) return // can't vote for own
     if (room.currentRound.votes.find(v => v.voterId === voterId)) return // already voted
@@ -193,7 +195,7 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
         votes: [...room.currentRound.votes, { voterId, submissionId }],
       },
     }
-    persistRoom(updated)
+    persistRoom(updated).catch(err => set({ error: String(err) }))
     set({ room: updated })
   },
 
@@ -206,6 +208,13 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
     submissions.forEach(s => voteCounts.set(s.id, 0))
     votes.forEach(v => voteCounts.set(v.submissionId, (voteCounts.get(v.submissionId) ?? 0) + 1))
     const maxVotes = Math.max(...Array.from(voteCounts.values()))
+    if (maxVotes === 0) {
+      const updatedRound = { ...room.currentRound, winnerIds: [], phase: 'results' as const }
+      const updated: Room = { ...room, currentRound: updatedRound }
+      persistRoom(updated).catch(err => set({ error: String(err) }))
+      set({ room: updated })
+      return
+    }
     const winningSubIds = submissions.filter(s => (voteCounts.get(s.id) ?? 0) === maxVotes).map(s => s.id)
     const winnerIds = submissions.filter(s => winningSubIds.includes(s.id)).map(s => s.playerId)
     const updatedPlayers = room.players.map(p =>
@@ -213,7 +222,7 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
     )
     const updatedRound = { ...room.currentRound, winnerIds, phase: 'results' as const }
     const updated: Room = { ...room, players: updatedPlayers, currentRound: updatedRound }
-    persistRoom(updated)
+    persistRoom(updated).catch(err => set({ error: String(err) }))
     set({ room: updated })
   },
 
@@ -269,7 +278,7 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
       ...room,
       players: room.players.map(p => p.profileId === profileId ? { ...p, isReady: ready } : p),
     }
-    persistRoom(updated)
+    persistRoom(updated).catch(err => set({ error: String(err) }))
     set({ room: updated })
   },
 }))
