@@ -3,7 +3,6 @@ import { router } from 'expo-router'
 import { useGameStore } from '../src/store/gameStore'
 import { JudgeWaitScreen } from '../src/screens/JudgeWaitScreen'
 import { PlayerHandScreen } from '../src/screens/PlayerHandScreen'
-import { RevealScreen } from '../src/screens/RevealScreen'
 import { PickWinnerScreen } from '../src/screens/PickWinnerScreen'
 import { RoundResultScreen } from '../src/screens/RoundResultScreen'
 
@@ -42,11 +41,7 @@ export default function GameScreen() {
   }
 
   if (round.phase === 'revealing') {
-    const allRevealed = round.revealIndex >= round.submissions.length
-    if (allRevealed) {
-      return <PickWinnerScreen room={room} />
-    }
-    return <RevealScreen room={room} />
+    return <PickWinnerScreen room={room} />
   }
 
   if (round.phase === 'complete') {

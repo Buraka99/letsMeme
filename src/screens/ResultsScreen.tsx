@@ -34,8 +34,11 @@ export default function ResultsScreen() {
     if (!profile) return
     setReady(profile.id, true)
     if (isHost) {
-      const allReady = room.players.every(p => p.isReady || p.profileId === profile.id)
-      if (allReady) advanceRound()
+      // Read fresh state after setReady updates the store
+      const freshRoom = useRoomStore.getState().room
+      if (freshRoom && freshRoom.players.every(p => p.isReady)) {
+        advanceRound()
+      }
     }
   }
 
