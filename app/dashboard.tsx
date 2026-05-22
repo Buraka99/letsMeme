@@ -1,9 +1,20 @@
+import { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { router } from 'expo-router'
 import { useAuthStore } from '../src/store/authStore'
 
 export default function DashboardScreen() {
   const { profile, signOut } = useAuthStore()
+  const [signingOut, setSigningOut] = useState(false)
+
+  const handleSignOut = async () => {
+    setSigningOut(true)
+    try {
+      await signOut()
+    } catch {
+      setSigningOut(false)
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -31,8 +42,10 @@ export default function DashboardScreen() {
         <Text style={styles.cardSub}>Unlock new decks</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
-        <Text style={styles.signOutText}>Sign Out</Text>
+      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} disabled={signingOut}>
+        <Text style={[styles.signOutText, signingOut && { opacity: 0.5 }]}>
+          {signingOut ? 'Signing out…' : 'Sign Out'}
+        </Text>
       </TouchableOpacity>
     </View>
   )

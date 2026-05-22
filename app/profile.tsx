@@ -9,10 +9,20 @@ export default function ProfileScreen() {
   const { profile, updateProfile } = useAuthStore()
   const [name, setName] = useState(profile?.displayName ?? '')
   const [color, setColor] = useState(profile?.avatarColor ?? '#6366f1')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const handleSave = async () => {
-    await updateProfile({ displayName: name.trim() || 'Player', avatarColor: color })
-    router.back()
+    setSaving(true)
+    setSaveError('')
+    try {
+      await updateProfile({ displayName: name.trim() || 'Player', avatarColor: color })
+      router.back()
+    } catch {
+      setSaveError('Failed to save. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -51,8 +61,9 @@ export default function ProfileScreen() {
         <View style={styles.stat}><Text style={styles.statNum}>{profile?.stats.roundsWon ?? 0}</Text><Text style={styles.statLabel}>Rounds Won</Text></View>
       </View>
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveText}>Save</Text>
+      {!!saveError && <Text style={styles.errorText}>{saveError}</Text>}
+      <TouchableOpacity style={[styles.saveButton, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+        <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save'}</Text>
       </TouchableOpacity>
     </ScrollView>
   )
@@ -77,4 +88,5 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12, color: '#8b8fa8', marginTop: 4 },
   saveButton: { backgroundColor: '#6366f1', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 32 },
   saveText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  errorText: { color: '#ef4444', fontSize: 14, textAlign: 'center', marginTop: 8 },
 })
