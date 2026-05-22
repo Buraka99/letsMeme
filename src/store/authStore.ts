@@ -48,6 +48,8 @@ async function fetchOrCreateProfile(userId: string): Promise<Profile> {
   return rowToProfile(created)
 }
 
+let authSubscription: { unsubscribe: () => void } | null = null
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   profile: null,
@@ -62,7 +64,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ loading: false })
     }
 
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    if (authSubscription) authSubscription.unsubscribe()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const profile = await fetchOrCreateProfile(session.user.id)
         set({ session, profile })
@@ -70,15 +73,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ session: null, profile: null })
       }
     })
+    authSubscription = subscription
   },
 
   signInAsGuest: async () => {
     const { data, error } = await supabase.auth.signInAnonymously()
     if (error) throw error
-    if (data.user) {
-      const profile = await fetchOrCreateProfile(data.user.id)
-      set({ profile })
-    }
+    if (!data.user) throw new Error('Sign-in succeeded but no user returned')
+    const profile = await fetchOrCreateProfile(data.user.id)
+    set({ session: data.session, profile })
   },
 
   signOut: async () => {
