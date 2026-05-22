@@ -1,109 +1,81 @@
-import { useState } from 'react'
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, KeyboardAvoidingView, Platform, ScrollView,
-} from 'react-native'
+import { useEffect } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
-import { useGameStore } from '../src/store/gameStore'
-import type { RoomConfig } from '../src/types/game'
+import * as WebBrowser from 'expo-web-browser'
+import { makeRedirectUri } from 'expo-auth-session'
+import { supabase } from '../src/lib/supabase'
+import { useAuthStore } from '../src/store/authStore'
 
-export default function HomeScreen() {
-  const [names, setNames] = useState(['', '', ''])
-  const createRoom = useGameStore(s => s.createRoom)
+WebBrowser.maybeCompleteAuthSession()
 
-  function addPlayer() {
-    if (names.length < 8) setNames([...names, ''])
-  }
+export default function AuthScreen() {
+  const { profile, loading, signInAsGuest } = useAuthStore()
 
-  function updateName(index: number, value: string) {
-    setNames(names.map((n, i) => (i === index ? value : n)))
-  }
-
-  function removePlayer(index: number) {
-    if (names.length <= 2) return
-    setNames(names.filter((_, i) => i !== index))
-  }
-
-  function handleStart() {
-    const validNames = names.map(n => n.trim()).filter(Boolean)
-    if (validNames.length < 2) return
-    const config: RoomConfig = {
-      targetScore: 5,
-      familyMode: false,
-      rapidFireSeconds: null,
-      judgeExplainsWhy: false,
-      selectedDeckIds: ['base'],
+  useEffect(() => {
+    if (!loading && profile) {
+      router.replace('/dashboard')
     }
-    createRoom(validNames, config)
-    router.push('/lobby')
+  }, [profile, loading])
+
+  const handleAppleSignIn = async () => {
+    const redirectUri = makeRedirectUri({ scheme: 'letsmeme' })
+    const { data } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: { redirectTo: redirectUri },
+    })
+    if (data?.url) await WebBrowser.openAuthSessionAsync(data.url, redirectUri)
   }
 
-  const canStart = names.filter(n => n.trim()).length >= 2
+  const handleGoogleSignIn = async () => {
+    const redirectUri = makeRedirectUri({ scheme: 'letsmeme' })
+    const { data } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: redirectUri },
+    })
+    if (data?.url) await WebBrowser.openAuthSessionAsync(data.url, redirectUri)
+  }
+
+  const handleGuest = async () => {
+    await signInAsGuest()
+    router.replace('/dashboard')
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator color="#6366f1" size="large" />
+      </View>
+    )
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Let's Meme</Text>
-          <Text style={styles.subtitle}>Add players to get started</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Let's Meme</Text>
+      <Text style={styles.subtitle}>The meme card party game</Text>
 
-          {names.map((name, i) => (
-            <View key={`player-slot-${i}-${names.length}`} style={styles.row}>
-              <TextInput
-                style={styles.input}
-                placeholder={`Player ${i + 1}`}
-                placeholderTextColor="#555"
-                value={name}
-                onChangeText={v => updateName(i, v)}
-                maxLength={20}
-                autoCapitalize="words"
-              />
-              {names.length > 2 && (
-                <TouchableOpacity onPress={() => removePlayer(i)} style={styles.removeBtn}>
-                  <Text style={styles.removeTxt}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ))}
+      <TouchableOpacity style={[styles.button, styles.appleButton]} onPress={handleAppleSignIn}>
+        <Text style={styles.buttonText}>Sign in with Apple</Text>
+      </TouchableOpacity>
 
-          {names.length < 8 && (
-            <TouchableOpacity onPress={addPlayer} style={styles.addBtn}>
-              <Text style={styles.addTxt}>+ Add Player</Text>
-            </TouchableOpacity>
-          )}
+      <TouchableOpacity style={[styles.button, styles.googleButton]} onPress={handleGoogleSignIn}>
+        <Text style={styles.buttonText}>Sign in with Google</Text>
+      </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={handleStart}
-            style={[styles.startBtn, !canStart && styles.startBtnDisabled]}
-            disabled={!canStart}
-          >
-            <Text style={styles.startTxt}>Start Game</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <TouchableOpacity style={styles.guestButton} onPress={handleGuest}>
+        <Text style={styles.guestText}>Play as Guest</Text>
+      </TouchableOpacity>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a1a' },
-  flex: { flex: 1 },
-  scroll: { padding: 24, paddingBottom: 48 },
-  title: { fontSize: 40, fontWeight: '900', color: '#fff', textAlign: 'center', marginTop: 32, marginBottom: 8 },
-  subtitle: { fontSize: 16, color: '#888', textAlign: 'center', marginBottom: 32 },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  input: {
-    flex: 1, backgroundColor: '#1a1a2e', color: '#fff', fontSize: 18,
-    padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#2a2a4a',
-  },
-  removeBtn: { marginLeft: 12, padding: 8 },
-  removeTxt: { color: '#555', fontSize: 18 },
-  addBtn: { alignItems: 'center', padding: 14, marginBottom: 24 },
-  addTxt: { color: '#6c63ff', fontSize: 16, fontWeight: '600' },
-  startBtn: {
-    backgroundColor: '#6c63ff', padding: 18, borderRadius: 16,
-    alignItems: 'center', marginTop: 8,
-  },
-  startBtnDisabled: { backgroundColor: '#2a2a4a' },
-  startTxt: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  container: { flex: 1, backgroundColor: '#0f1117', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  title: { fontSize: 42, fontWeight: '900', color: '#ffffff', marginBottom: 8 },
+  subtitle: { fontSize: 16, color: '#8b8fa8', marginBottom: 48 },
+  button: { width: '100%', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
+  appleButton: { backgroundColor: '#ffffff' },
+  googleButton: { backgroundColor: '#4285f4' },
+  buttonText: { fontSize: 16, fontWeight: '700', color: '#0f1117' },
+  guestButton: { marginTop: 16 },
+  guestText: { color: '#8b8fa8', fontSize: 15 },
 })
