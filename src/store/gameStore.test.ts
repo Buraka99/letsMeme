@@ -168,4 +168,53 @@ describe('pickWinner', () => {
     })
     expect(useGameStore.getState().room!.state).toBe('ended')
   })
+
+  it('does not clear incoming judge hand after round', () => {
+    act(() => {
+      useGameStore.getState().createRoom(
+        ['Alice', 'Bob', 'Carol'],
+        { targetScore: 5, familyMode: false, rapidFireSeconds: null, judgeExplainsWhy: false, selectedDeckIds: ['base'] }
+      )
+      useGameStore.getState().startGame()
+    })
+    const room = useGameStore.getState().room!
+    const nonJudges = room.players.filter(p => !p.isJudge)
+    act(() => {
+      nonJudges.forEach(p => useGameStore.getState().submitCard(p.id, p.hand[0].id))
+      nonJudges.forEach(() => useGameStore.getState().revealNext())
+      useGameStore.getState().pickWinner(nonJudges[0].id)
+    })
+    const updated = useGameStore.getState().room!
+    // The new judge (index 1 after rotation from 0) should still have cards
+    const newJudge = updated.players.find(p => p.isJudge)!
+    expect(newJudge.hand.length).toBeGreaterThan(0)
+  })
+
+  it('recycles photo cards when deck is exhausted', () => {
+    act(() => {
+      useGameStore.getState().createRoom(
+        ['Alice', 'Bob'],
+        { targetScore: 15, familyMode: false, rapidFireSeconds: null, judgeExplainsWhy: false, selectedDeckIds: ['base'] }
+      )
+      useGameStore.getState().startGame()
+    })
+    // Play 11 rounds (more than the 10 photo cards available)
+    for (let i = 0; i < 11; i++) {
+      const room = useGameStore.getState().room!
+      if (room.state === 'ended') break
+      const nonJudge = room.players.find(p => !p.isJudge)!
+      act(() => {
+        useGameStore.getState().submitCard(nonJudge.id, nonJudge.hand[0].id)
+        useGameStore.getState().revealNext()
+        useGameStore.getState().pickWinner(nonJudge.id)
+      })
+    }
+    // Should not have crashed — room still has a valid photo card
+    const room = useGameStore.getState().room!
+    if (room.state === 'playing') {
+      expect(room.currentRound).not.toBeNull()
+      expect(room.currentRound!.photoCard).toBeDefined()
+      expect(room.currentRound!.photoCard.type).toBe('photo')
+    }
+  })
 })

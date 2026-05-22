@@ -38,7 +38,10 @@ function dealHands(room: Room): Room {
 }
 
 function startRound(room: Room): Room {
-  const photos = [...room.deck.photos]
+  let photos = [...room.deck.photos]
+  if (photos.length === 0) {
+    photos = shuffle(PHOTO_CARDS)
+  }
   const photoCard = photos.shift()!
   const round: Round = {
     id: generateId(),
@@ -58,7 +61,7 @@ function startRound(room: Room): Room {
 function refillHands(room: Room): Room {
   const captions = [...room.deck.captions]
   const players = room.players.map(p => {
-    if (p.isJudge) return { ...p, hand: [] }
+    if (p.isJudge) return p  // preserve judge's hand — don't clear it
     const needed = 7 - p.hand.length
     const refill = captions.splice(0, needed)
     return { ...p, hand: [...p.hand, ...refill] }
