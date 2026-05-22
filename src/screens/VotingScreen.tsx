@@ -1,4 +1,5 @@
 // src/screens/VotingScreen.tsx
+import { useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { useAuthStore } from '../store/authStore'
@@ -9,17 +10,24 @@ export default function VotingScreen() {
   const { profile } = useAuthStore()
   const { room, castVote, tallyVotes } = useRoomStore()
 
+  // Derive values safely before early return
+  const currentRound = room?.currentRound
+  const myVote = currentRound?.votes.find(v => v.voterId === (profile?.id ?? ''))
+  const totalVoters = room?.players.length ?? 0
+  const votesIn = currentRound?.votes.length ?? 0
+  const isHost = room ? room.hostId === profile?.id : false
+
+  // ALL hooks BEFORE early return
+  useEffect(() => {
+    if (isHost && votesIn >= totalVoters && currentRound?.phase === 'voting') {
+      tallyVotes()
+    }
+  }, [votesIn, totalVoters, isHost])
+
   if (!room?.currentRound || !profile) return null
 
-  const { currentRound } = room
-  const myVote = currentRound.votes.find(v => v.voterId === profile.id)
-  const totalVoters = room.players.length
-  const votesIn = currentRound.votes.length
-
-  const isHost = room.hostId === profile.id
-  if (isHost && votesIn >= totalVoters) {
-    tallyVotes()
-  }
+  // After the guard, currentRound is guaranteed non-null
+  const safeRound = currentRound!
 
   const handleVote = (submissionId: string) => {
     if (myVote) return
@@ -29,12 +37,12 @@ export default function VotingScreen() {
 
   return (
     <View style={styles.container}>
-      <PhotoCard imageAsset={currentRound.photoCard.imageAsset ?? ''} />
+      <PhotoCard imageAsset={safeRound.photoCard.imageAsset ?? ''} />
       <Text style={styles.status}>{votesIn}/{totalVoters} voted</Text>
       <Text style={styles.prompt}>{myVote ? 'Vote cast! Waiting for others…' : 'Vote for the funniest caption'}</Text>
 
       <FlatList
-        data={currentRound.submissions}
+        data={safeRound.submissions}
         keyExtractor={s => s.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => {

@@ -10,25 +10,32 @@ export default function ResultsScreen() {
   const { room, advanceRound, setReady } = useRoomStore()
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  if (!room?.currentRound || !profile) return null
+  // Derive values safely (may be null before early return)
+  const currentRound = room?.currentRound
+  const config = room?.config
+  const isHost = room ? room.hostId === profile?.id : false
+  const winners = room && currentRound ? room.players.filter(p => currentRound.winnerIds.includes(p.profileId)) : []
+  const iWon = currentRound ? currentRound.winnerIds.includes(profile?.id ?? '') : false
 
-  const { currentRound, config } = room
-  const isHost = room.hostId === profile.id
-  const winners = room.players.filter(p => currentRound.winnerIds.includes(p.profileId))
-  const iWon = currentRound.winnerIds.includes(profile.id)
-
+  // ALL hooks BEFORE any early return
   useEffect(() => {
     if (iWon) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-  }, [])
+  }, [iWon])
 
   useEffect(() => {
-    if (config.allReadyAdvance) return
+    if (!config || config.allReadyAdvance) return
     if (!isHost) return
     timerRef.current = setTimeout(() => {
       advanceRound()
     }, 3000)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [])
+  }, [config?.allReadyAdvance, isHost])
+
+  // Early return AFTER all hooks
+  if (!room?.currentRound || !profile) return null
+
+  // After the guard, config and currentRound are guaranteed non-null
+  const safeConfig = config!
 
   const handleReady = () => {
     if (!profile) return
@@ -63,12 +70,12 @@ export default function ResultsScreen() {
         )}
       />
 
-      {config.allReadyAdvance && (
+      {safeConfig.allReadyAdvance && (
         <TouchableOpacity style={styles.readyButton} onPress={handleReady}>
           <Text style={styles.readyText}>Ready →</Text>
         </TouchableOpacity>
       )}
-      {!config.allReadyAdvance && !isHost && (
+      {!safeConfig.allReadyAdvance && !isHost && (
         <Text style={styles.advancingText}>Next round in 3s…</Text>
       )}
     </View>
